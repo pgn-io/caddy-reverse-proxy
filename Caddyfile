@@ -41,11 +41,83 @@
         format json
     }
 
+    # Control matching order explicitly.
     route {
+
         # -------------------------
-        # Identity service (default /api/*, no prefix stripping)
+        # Identity service (auth + profile/session/users/etc.)
         # -------------------------
-        handle {$IDENTITY_SERVICE_PATH:/api}/* {
+        handle_path {$IDENTITY_SERVICE_PATH:/api/auth}/* {
+            reverse_proxy {
+                dynamic a {
+                    name {$IDENTITY_SERVICE_DOMAIN}
+                    port {$IDENTITY_SERVICE_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
+        handle_path /api/profile/* {
+            reverse_proxy {
+                dynamic a {
+                    name {$IDENTITY_SERVICE_DOMAIN}
+                    port {$IDENTITY_SERVICE_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
+        handle_path /api/session/* {
+            reverse_proxy {
+                dynamic a {
+                    name {$IDENTITY_SERVICE_DOMAIN}
+                    port {$IDENTITY_SERVICE_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
+        handle_path /api/users/* {
+            reverse_proxy {
+                dynamic a {
+                    name {$IDENTITY_SERVICE_DOMAIN}
+                    port {$IDENTITY_SERVICE_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
+        handle_path /api/telegram/* {
+            reverse_proxy {
+                dynamic a {
+                    name {$IDENTITY_SERVICE_DOMAIN}
+                    port {$IDENTITY_SERVICE_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
+        handle_path /api/twitter/* {
             reverse_proxy {
                 dynamic a {
                     name {$IDENTITY_SERVICE_DOMAIN}
@@ -61,7 +133,7 @@
         }
 
         # -------------------------
-        # Data-bridge HTTP endpoints (strip /api/bridge)
+        # Data-bridge HTTP endpoints
         # -------------------------
         handle_path {$DATA_BRIDGE_PATH:/api/bridge}/* {
             reverse_proxy {
@@ -79,7 +151,7 @@
         }
 
         # -------------------------
-        # tRPC (keep /api/trpc)
+        # tRPC
         # -------------------------
         handle {$DATA_BRIDGE_TRPC_PATH:/api/trpc}/* {
             reverse_proxy {
@@ -97,7 +169,7 @@
         }
 
         # -------------------------
-        # Socket.IO (keep /socket.io)
+        # Socket.IO
         # -------------------------
         handle /socket.io/* {
             reverse_proxy {
@@ -115,39 +187,9 @@
         }
 
         # -------------------------
-        # Frontend SPA with basic auth on HTML routes only
+        # Frontend SPA fallback
         # -------------------------
-        @assets {
-            path /assets/* /favicon.ico /logo.svg /manifest.json /robots.txt
-            path_regexp static \.(js|css|map|png|jpg|jpeg|gif|svg|webp|ico)$
-        }
-
-        handle @assets {
-            reverse_proxy {
-                dynamic a {
-                    name {$FRONTEND_DOMAIN}
-                    port {$FRONTEND_PORT}
-                    refresh 1s
-                    dial_timeout 30s
-                    versions ipv4 ipv6
-                }
-                import lb_settings
-                import passive_health_checks
-                header_up Host {upstream_hostport}
-            }
-        }
-
         handle {
-            @auth_any {
-                not {
-                    path /api/*
-                    path /assets/* /favicon.ico /logo.svg /manifest.json /robots.txt
-                    path_regexp static \.(js|css|map|png|jpg|jpeg|gif|svg|webp|ico)$
-                }
-            }
-            basicauth @auth_any {
-                {$BASIC_AUTH_USER} {$BASIC_AUTH_PASS}
-            }
             reverse_proxy {
                 dynamic a {
                     name {$FRONTEND_DOMAIN}
