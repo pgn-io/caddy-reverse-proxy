@@ -6,14 +6,17 @@
     admin off
     persist_config off
     auto_https off
+
     log {
         format json
     }
+
     servers {
         trusted_proxies static private_ranges
     }
 }
 
+# Snippet: Load Balancing Settings
 (lb_settings) {
     lb_policy round_robin
     lb_retries 100
@@ -21,6 +24,7 @@
     lb_try_interval 250ms
 }
 
+# Snippet: Passive Health Checks
 (passive_health_checks) {
     fail_duration 60s
     max_fails 300
@@ -37,11 +41,14 @@
         format json
     }
 
-    # Use route + handle blocks to control matching order explicitly.
+    # Control matching order explicitly.
     route {
 
-        # --- Internal Services ---
-        # Any request starting with /api/auth (or your overridden path) goes to identity.
+        # -------------------------
+        # Identity service
+        # -------------------------
+        # Default path: /api/auth/*
+        # handle_path strips the prefix before proxying.
         handle_path {$IDENTITY_SERVICE_PATH:/api/auth}/* {
             reverse_proxy {
                 dynamic a {
@@ -57,7 +64,10 @@
             }
         }
 
-        # Any request starting with /api/bridge (or your overridden path) goes to data-bridge.
+        # -------------------------
+        # Data-bridge HTTP endpoints
+        # -------------------------
+        # Default path: /api/bridge/*
         handle_path {$DATA_BRIDGE_PATH:/api/bridge}/* {
             reverse_proxy {
                 dynamic a {
@@ -73,8 +83,30 @@
             }
         }
 
-        # --- Socket.IO ---
-        # Important: DON'T use handle_path unless your upstream expects / stripped.
+        # -------------------------
+        # tRPC
+        # -------------------------
+        # Frontend calls /api/trpc/*
+        # Use handle (NOT handle_path) so /api/trpc is not stripped.
+        handle {$DATA_BRIDGE_TRPC_PATH:/api/trpc}/* {
+            reverse_proxy {
+                dynamic a {
+                    name {$DATA_BRIDGE_DOMAIN}
+                    port {$DATA_BRIDGE_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
+
+        # -------------------------
+        # Socket.IO
+        # -------------------------
+        # Use handle (NOT handle_path) so /socket.io is not stripped.
         handle /socket.io/* {
             reverse_proxy {
                 dynamic a {
@@ -90,7 +122,9 @@
             }
         }
 
-        # --- Frontend fallback ---
+        # -------------------------
+        # Frontend SPA fallback
+        # -------------------------
         handle {
             reverse_proxy {
                 dynamic a {
