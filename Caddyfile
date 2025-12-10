@@ -47,7 +47,8 @@
         # -------------------------
         # Identity service (auth + profile/session/users/etc.)
         # -------------------------
-        handle_path {$IDENTITY_SERVICE_PATH:/api/auth}/* {
+        # Preserve the /api prefix when proxying to identity-service.
+        handle /api/auth/* {
             reverse_proxy {
                 dynamic a {
                     name {$IDENTITY_SERVICE_DOMAIN}
@@ -61,7 +62,7 @@
                 header_up Host {upstream_hostport}
             }
         }
-        handle_path /api/profile/* {
+        handle /api/profile/* {
             reverse_proxy {
                 dynamic a {
                     name {$IDENTITY_SERVICE_DOMAIN}
@@ -75,7 +76,7 @@
                 header_up Host {upstream_hostport}
             }
         }
-        handle_path /api/session/* {
+        handle /api/session/* {
             reverse_proxy {
                 dynamic a {
                     name {$IDENTITY_SERVICE_DOMAIN}
@@ -89,7 +90,7 @@
                 header_up Host {upstream_hostport}
             }
         }
-        handle_path /api/users/* {
+        handle /api/users/* {
             reverse_proxy {
                 dynamic a {
                     name {$IDENTITY_SERVICE_DOMAIN}
@@ -103,7 +104,7 @@
                 header_up Host {upstream_hostport}
             }
         }
-        handle_path /api/telegram/* {
+        handle /api/telegram/* {
             reverse_proxy {
                 dynamic a {
                     name {$IDENTITY_SERVICE_DOMAIN}
@@ -117,7 +118,7 @@
                 header_up Host {upstream_hostport}
             }
         }
-        handle_path /api/twitter/* {
+        handle /api/twitter/* {
             reverse_proxy {
                 dynamic a {
                     name {$IDENTITY_SERVICE_DOMAIN}
