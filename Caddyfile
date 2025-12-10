@@ -41,15 +41,11 @@
         format json
     }
 
-    # Control matching order explicitly.
     route {
-
         # -------------------------
-        # Identity service
+        # Identity service (default /api/*, no prefix stripping)
         # -------------------------
-        # Default path: /api/auth/*
-        # handle_path strips the prefix before proxying.
-        handle_path {$IDENTITY_SERVICE_PATH:/api/auth}/* {
+        handle {$IDENTITY_SERVICE_PATH:/api}/* {
             reverse_proxy {
                 dynamic a {
                     name {$IDENTITY_SERVICE_DOMAIN}
@@ -65,9 +61,8 @@
         }
 
         # -------------------------
-        # Data-bridge HTTP endpoints
+        # Data-bridge HTTP endpoints (strip /api/bridge)
         # -------------------------
-        # Default path: /api/bridge/*
         handle_path {$DATA_BRIDGE_PATH:/api/bridge}/* {
             reverse_proxy {
                 dynamic a {
@@ -84,10 +79,8 @@
         }
 
         # -------------------------
-        # tRPC
+        # tRPC (keep /api/trpc)
         # -------------------------
-        # Frontend calls /api/trpc/*
-        # Use handle (NOT handle_path) so /api/trpc is not stripped.
         handle {$DATA_BRIDGE_TRPC_PATH:/api/trpc}/* {
             reverse_proxy {
                 dynamic a {
@@ -104,9 +97,8 @@
         }
 
         # -------------------------
-        # Socket.IO
+        # Socket.IO (keep /socket.io)
         # -------------------------
-        # Use handle (NOT handle_path) so /socket.io is not stripped.
         handle /socket.io/* {
             reverse_proxy {
                 dynamic a {
@@ -123,9 +115,39 @@
         }
 
         # -------------------------
-        # Frontend SPA fallback
+        # Frontend SPA with basic auth on HTML routes only
         # -------------------------
+        @assets {
+            path /assets/* /favicon.ico /logo.svg /manifest.json /robots.txt
+            path_regexp static \.(js|css|map|png|jpg|jpeg|gif|svg|webp|ico)$
+        }
+
+        handle @assets {
+            reverse_proxy {
+                dynamic a {
+                    name {$FRONTEND_DOMAIN}
+                    port {$FRONTEND_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
+
         handle {
+            @auth_any {
+                not {
+                    path /api/*
+                    path /assets/* /favicon.ico /logo.svg /manifest.json /robots.txt
+                    path_regexp static \.(js|css|map|png|jpg|jpeg|gif|svg|webp|ico)$
+                }
+            }
+            basicauth @auth_any {
+                {$BASIC_AUTH_USER} {$BASIC_AUTH_PASS}
+            }
             reverse_proxy {
                 dynamic a {
                     name {$FRONTEND_DOMAIN}
