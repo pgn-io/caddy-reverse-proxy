@@ -41,13 +41,11 @@
         format json
     }
 
-    # Control matching order explicitly.
     route {
 
         # -------------------------
-        # Identity service (auth + profile/session/users/etc.)
+        # Identity service (preserve /api prefix)
         # -------------------------
-        # Preserve the /api prefix when proxying to identity-service.
         handle /api/auth/* {
             reverse_proxy {
                 dynamic a {
