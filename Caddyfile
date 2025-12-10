@@ -2,7 +2,6 @@
 # 1. GLOBAL OPTIONS & SNIPPETS
 # ---------------------------------------------------------
 
-# Global options
 {
     admin off
     persist_config off
@@ -15,7 +14,6 @@
     }
 }
 
-# Snippet: Load Balancing Settings
 (lb_settings) {
     lb_policy round_robin
     lb_retries 100
@@ -23,7 +21,6 @@
     lb_try_interval 250ms
 }
 
-# Snippet: Passive Health Checks
 (passive_health_checks) {
     fail_duration 60s
     max_fails 300
@@ -40,49 +37,73 @@
         format json
     }
 
-	# --- Frontend ---
-	reverse_proxy {
-		dynamic a {
-			name {$FRONTEND_DOMAIN}
-			port {$FRONTEND_PORT}
-			refresh 1s
-			dial_timeout 30s
-			versions ipv4 ipv6
-		}
-		import lb_settings
-		import passive_health_checks
-		header_up Host {upstream_hostport}
-	}
+    # Use route + handle blocks to control matching order explicitly.
+    route {
 
-	# --- Internal Services ---
-	# Any request starting with /api/ goes straight to the backend.
-	handle_path {$IDENTITY_SERVICE_PATH:/api/auth}/* {
-		reverse_proxy {
-			dynamic a {
-				name {$IDENTITY_SERVICE_DOMAIN}
-				port {$IDENTITY_SERVICE_PORT}
-				refresh 1s
-				dial_timeout 30s
-				versions ipv4 ipv6
-			}
-			import lb_settings
-			import passive_health_checks
-			header_up Host {upstream_hostport}
-		}
-	}
+        # --- Internal Services ---
+        # Any request starting with /api/auth (or your overridden path) goes to identity.
+        handle_path {$IDENTITY_SERVICE_PATH:/api/auth}/* {
+            reverse_proxy {
+                dynamic a {
+                    name {$IDENTITY_SERVICE_DOMAIN}
+                    port {$IDENTITY_SERVICE_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
 
-	handle_path {$DATA_BRIDGE_PATH:/api/bridge}/* {
-		reverse_proxy {
-			dynamic a {
-				name {$DATA_BRIDGE_DOMAIN}
-				port {$DATA_BRIDGE_PORT}
-				refresh 1s
-				dial_timeout 30s
-				versions ipv4 ipv6
-			}
-			import lb_settings
-			import passive_health_checks
-			header_up Host {upstream_hostport}
-		}
-	}
+        # Any request starting with /api/bridge (or your overridden path) goes to data-bridge.
+        handle_path {$DATA_BRIDGE_PATH:/api/bridge}/* {
+            reverse_proxy {
+                dynamic a {
+                    name {$DATA_BRIDGE_DOMAIN}
+                    port {$DATA_BRIDGE_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
+
+        # --- Socket.IO ---
+        # Important: DON'T use handle_path unless your upstream expects / stripped.
+        handle /socket.io/* {
+            reverse_proxy {
+                dynamic a {
+                    name {$DATA_BRIDGE_DOMAIN}
+                    port {$DATA_BRIDGE_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
+
+        # --- Frontend fallback ---
+        handle {
+            reverse_proxy {
+                dynamic a {
+                    name {$FRONTEND_DOMAIN}
+                    port {$FRONTEND_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import lb_settings
+                import passive_health_checks
+                header_up Host {upstream_hostport}
+            }
+        }
+    }
 }
