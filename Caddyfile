@@ -2,7 +2,6 @@
 # 1. GLOBAL OPTIONS & SNIPPETS
 # ---------------------------------------------------------
 
-# Global options
 {
     admin off
     persist_config off
@@ -15,7 +14,6 @@
     }
 }
 
-# Snippet: Load Balancing Settings
 (lb_settings) {
     lb_policy round_robin
     lb_retries 100
@@ -23,7 +21,6 @@
     lb_try_interval 250ms
 }
 
-# Snippet: Passive Health Checks
 (passive_health_checks) {
     fail_duration 60s
     max_fails 300
@@ -41,29 +38,28 @@
     }
 
     # --- RULE 1: API (Unprotected) ---
-    # Any request starting with /api/ goes straight to the backend.
-    # NO Basic Auth here.
-    handle_path {$BACKEND_PATH:/api}/* {
+    # Changed handle_path to handle so /api is NOT stripped.
+    # If your backend handles routing starting at /, keep handle_path.
+    # If your backend handles routing starting at /api, use handle.
+    handle {$BACKEND_PATH:/api}/* {
         reverse_proxy {
             dynamic a {
                 name {$BACKEND_DOMAIN}
                 port {$BACKEND_PORT}
-                refresh 1s
+                refresh 5s
                 dial_timeout 30s
                 versions ipv4 ipv6
             }
             import lb_settings
             import passive_health_checks
-            header_up Host {upstream_hostport}
+            # REMOVED: header_up Host {upstream_hostport}
         }
     }
 
     # --- RULE 2: Frontend SPA (Protected) ---
-    # Catch-all for everything else (/, index.html, .js, .css).
-    # REQUIRES Basic Auth (password).
     handle {
         basicauth {
-            # Remember: variable BASIC_AUTH_PASS must be a BCRYPT HASH
+            # Ensure this is a hash: caddy hash-password --plaintext 'mypass'
             {$BASIC_AUTH_USER} {$BASIC_AUTH_PASS}
         }
 
@@ -71,13 +67,97 @@
             dynamic a {
                 name {$FRONTEND_DOMAIN}
                 port {$FRONTEND_PORT}
-                refresh 1s
+                refresh 5s
                 dial_timeout 30s
                 versions ipv4 ipv6
             }
             import lb_settings
             import passive_health_checks
-            header_up Host {upstream_hostport}
+            # REMOVED: header_up Host {upstream_hostport}
         }
     }
 }
+
+# # ---------------------------------------------------------
+# # 1. GLOBAL OPTIONS & SNIPPETS
+# # ---------------------------------------------------------
+
+# # Global options
+# {
+#     admin off
+#     persist_config off
+#     auto_https off
+#     log {
+#         format json
+#     }
+#     servers {
+#         trusted_proxies static private_ranges
+#     }
+# }
+
+# # Snippet: Load Balancing Settings
+# (lb_settings) {
+#     lb_policy round_robin
+#     lb_retries 100
+#     lb_try_duration 10s
+#     lb_try_interval 250ms
+# }
+
+# # Snippet: Passive Health Checks
+# (passive_health_checks) {
+#     fail_duration 60s
+#     max_fails 300
+#     unhealthy_latency 5s
+#     unhealthy_request_count 200
+# }
+
+# # ---------------------------------------------------------
+# # 2. SITE CONFIGURATION
+# # ---------------------------------------------------------
+
+# :{$PORT} {
+#     log {
+#         format json
+#     }
+
+#     # --- RULE 1: API (Unprotected) ---
+#     # Any request starting with /api/ goes straight to the backend.
+#     # NO Basic Auth here.
+#     handle_path {$BACKEND_PATH:/api}/* {
+#         reverse_proxy {
+#             dynamic a {
+#                 name {$BACKEND_DOMAIN}
+#                 port {$BACKEND_PORT}
+#                 refresh 1s
+#                 dial_timeout 30s
+#                 versions ipv4 ipv6
+#             }
+#             import lb_settings
+#             import passive_health_checks
+#             header_up Host {upstream_hostport}
+#         }
+#     }
+
+#     # --- RULE 2: Frontend SPA (Protected) ---
+#     # Catch-all for everything else (/, index.html, .js, .css).
+#     # REQUIRES Basic Auth (password).
+#     handle {
+#         basicauth {
+#             # Remember: variable BASIC_AUTH_PASS must be a BCRYPT HASH
+#             {$BASIC_AUTH_USER} {$BASIC_AUTH_PASS}
+#         }
+
+#         reverse_proxy {
+#             dynamic a {
+#                 name {$FRONTEND_DOMAIN}
+#                 port {$FRONTEND_PORT}
+#                 refresh 1s
+#                 dial_timeout 30s
+#                 versions ipv4 ipv6
+#             }
+#             import lb_settings
+#             import passive_health_checks
+#             header_up Host {upstream_hostport}
+#         }
+#     }
+# }
