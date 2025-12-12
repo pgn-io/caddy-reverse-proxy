@@ -52,13 +52,9 @@
         }
     }
 
-    # --- NEW RULE: Redirect Handler (Unprotected) ---
-    # 1. Matches requests to /r
-    # 2. Rewrites the path to /api/r (so the backend understands it)
-    # 3. Proxies to the backend (NOT the frontend)
+    # --- RULE 1B: Redirect Handler (Unprotected) ---
+    # Proxies /r* directly to identity-service (no rewrite)
     handle /r* {
-        rewrite * /api{uri}
-
         reverse_proxy {
             dynamic a {
                 name {$BACKEND_DOMAIN}
@@ -73,8 +69,7 @@
     }
 
     # --- RULE 2: Frontend SPA (Protected) ---
-    # This acts as the "catch-all" because it has no matcher.
-    # It MUST come after the specific handles above.
+    # Catch-all must come last
     handle {
         basicauth {
             {$BASIC_AUTH_USER} {$BASIC_AUTH_PASS}
@@ -93,3 +88,100 @@
         }
     }
 }
+
+
+# # ---------------------------------------------------------
+# # 1. GLOBAL OPTIONS & SNIPPETS
+# # ---------------------------------------------------------
+
+# {
+#     admin off
+#     persist_config off
+#     auto_https off
+#     log {
+#         format json
+#     }
+#     servers {
+#         trusted_proxies static private_ranges
+#     }
+# }
+
+# (lb_settings) {
+#     lb_policy round_robin
+#     lb_retries 100
+#     lb_try_duration 10s
+#     lb_try_interval 250ms
+# }
+
+# (passive_health_checks) {
+#     fail_duration 60s
+#     max_fails 300
+#     unhealthy_latency 5s
+#     unhealthy_request_count 200
+# }
+
+# # ---------------------------------------------------------
+# # 2. SITE CONFIGURATION
+# # ---------------------------------------------------------
+
+# :{$PORT} {
+#     log {
+#         format json
+#     }
+
+#     # --- RULE 1: API (Unprotected) ---
+#     handle {$BACKEND_PATH:/api}/* {
+#         reverse_proxy {
+#             dynamic a {
+#                 name {$BACKEND_DOMAIN}
+#                 port {$BACKEND_PORT}
+#                 refresh 5s
+#                 dial_timeout 30s
+#                 versions ipv4 ipv6
+#             }
+#             import lb_settings
+#             import passive_health_checks
+#         }
+#     }
+
+#     # --- NEW RULE: Redirect Handler (Unprotected) ---
+#     # 1. Matches requests to /r
+#     # 2. Rewrites the path to /api/r (so the backend understands it)
+#     # 3. Proxies to the backend (NOT the frontend)
+#     handle /r* {
+#         rewrite * /api{uri}
+
+#         reverse_proxy {
+#             dynamic a {
+#                 name {$BACKEND_DOMAIN}
+#                 port {$BACKEND_PORT}
+#                 refresh 5s
+#                 dial_timeout 30s
+#                 versions ipv4 ipv6
+#             }
+#             import lb_settings
+#             import passive_health_checks
+#         }
+#     }
+
+#     # --- RULE 2: Frontend SPA (Protected) ---
+#     # This acts as the "catch-all" because it has no matcher.
+#     # It MUST come after the specific handles above.
+#     handle {
+#         basicauth {
+#             {$BASIC_AUTH_USER} {$BASIC_AUTH_PASS}
+#         }
+
+#         reverse_proxy {
+#             dynamic a {
+#                 name {$FRONTEND_DOMAIN}
+#                 port {$FRONTEND_PORT}
+#                 refresh 5s
+#                 dial_timeout 30s
+#                 versions ipv4 ipv6
+#             }
+#             import lb_settings
+#             import passive_health_checks
+#         }
+#     }
+# }
