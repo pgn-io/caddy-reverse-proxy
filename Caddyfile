@@ -56,8 +56,8 @@
     # 1. Matches requests to /r
     # 2. Rewrites the path to /api/r (so the backend understands it)
     # 3. Proxies to the backend (NOT the frontend)
-    handle /r {
-        rewrite * /api/r
+    handle /r* {
+        rewrite * /api{uri}
 
         reverse_proxy {
             dynamic a {
