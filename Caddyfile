@@ -71,9 +71,9 @@
     # --- RULE 2: Frontend SPA (Protected) ---
     # Catch-all must come last
     handle {
-        #basicauth {
-        #    {$BASIC_AUTH_USER} {$BASIC_AUTH_PASS}
-        #}
+        basicauth {
+            {$BASIC_AUTH_USER} {$BASIC_AUTH_PASS}
+        }
 
         reverse_proxy {
             dynamic a {
