@@ -32,14 +32,6 @@
     unhealthy_request_count 200
 }
 
-# Snippet: Frontend Basic Auth
-# IMPORTANT: BASIC_AUTH_PASS must be a bcrypt hash
-(frontend_auth) {
-    basicauth {
-        {$BASIC_AUTH_USER} {$BASIC_AUTH_PASS}
-    }
-}
-
 # ---------------------------------------------------------
 # 2. SITE CONFIGURATION
 # ---------------------------------------------------------
@@ -52,7 +44,7 @@
     route {
 
         # -------------------------
-        # Data-bridge (UNPROTECTED)
+        # Data-bridge (OPEN)
         # -------------------------
 
         # /api/bridge/*
@@ -106,7 +98,7 @@
         }
 
         # -------------------------
-        # Identity service (UNPROTECTED)
+        # Identity service (OPEN)
         # Catch-all for the rest of /api
         # -------------------------
 
@@ -144,12 +136,11 @@
         }
 
         # -------------------------
-        # Frontend assets (PROTECTED)
+        # Frontend assets (OPEN)
         # -------------------------
 
         # Vite/SPA typical static paths
         handle /assets/* {
-            import frontend_auth
             reverse_proxy {
                 dynamic a {
                     name {$FRONTEND_DOMAIN}
@@ -165,7 +156,6 @@
         }
 
         handle /favicon.ico {
-            import frontend_auth
             reverse_proxy {
                 dynamic a {
                     name {$FRONTEND_DOMAIN}
@@ -181,7 +171,6 @@
         }
 
         handle /manifest.json {
-            import frontend_auth
             reverse_proxy {
                 dynamic a {
                     name {$FRONTEND_DOMAIN}
@@ -197,12 +186,10 @@
         }
 
         # -------------------------
-        # Frontend SPA fallback (PROTECTED)
+        # Frontend SPA fallback (OPEN)
         # -------------------------
-        # Everything not matched above goes to the frontend,
-        # protected by Basic Auth.
+        # Everything not matched above goes to the frontend.
         handle {
-            import frontend_auth
             reverse_proxy {
                 dynamic a {
                     name {$FRONTEND_DOMAIN}
