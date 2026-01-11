@@ -37,6 +37,14 @@
         format json
     }
 
+    # --- Plausible event endpoint (first-party) ---
+    @plausible_event path /api/event
+    handle @plausible_event {
+        reverse_proxy https://plausible.io {
+            header_up Host {http.reverse_proxy.upstream.hostport}
+        }
+    }
+
     # --- RULE 1: API (Unprotected) ---
     handle {$BACKEND_PATH:/api}/* {
         reverse_proxy {
