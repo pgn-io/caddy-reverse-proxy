@@ -87,8 +87,8 @@
             header_up Host {host}
         }
     }
-    
-    handle_path {$DATA_BRIDGE_PATH:/api/profile}/* {
+
+    handle_path {$IDENTITY_SERVICE_PATH:/api/profile}/* {
         reverse_proxy {
             dynamic a {
                 name {$IDENTITY_SERVICE_DOMAIN}
