@@ -88,7 +88,7 @@
         }
     }
 
-    handle /api/profile {
+    handle /api/profile/* {
         uri strip_prefix /api
         reverse_proxy {
             dynamic a {
