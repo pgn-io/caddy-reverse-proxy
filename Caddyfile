@@ -89,6 +89,7 @@
     }
 
     handle /api/profile/* {
+        uri strip_prefix /api
         reverse_proxy {
             dynamic a {
                 name {$IDENTITY_SERVICE_DOMAIN}
