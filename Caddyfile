@@ -88,6 +88,7 @@
         }
     }
 
+    # Profile exact
     handle /api/profile {
         uri strip_prefix /api
         reverse_proxy {
@@ -104,8 +105,9 @@
         }
     }
 
-    # --- Profile subroutes (/api/profile/* -> /*) ---
-    handle_path /api/profile/* {
+    # Profile subroutes
+    handle /api/profile/* {
+        uri strip_prefix /api
         reverse_proxy {
             dynamic a {
                 name {$IDENTITY_SERVICE_DOMAIN}
