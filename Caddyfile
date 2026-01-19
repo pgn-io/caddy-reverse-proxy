@@ -104,6 +104,22 @@
         }
     }
 
+    # --- Profile subroutes (/api/profile/* -> /*) ---
+    handle_path /api/profile/* {
+        reverse_proxy {
+            dynamic a {
+                name {$IDENTITY_SERVICE_DOMAIN}
+                port {$IDENTITY_SERVICE_PORT}
+                refresh 1s
+                dial_timeout 30s
+                versions ipv4 ipv6
+            }
+            import lb_settings
+            import passive_health_checks
+            header_up Host {host}
+        }
+    }
+
     handle /api/* {
         respond "API route not found" 404
     }
