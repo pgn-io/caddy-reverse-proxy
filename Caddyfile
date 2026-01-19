@@ -104,6 +104,10 @@
         }
     }
 
+    handle /api/* {
+        respond "API route not found" 404
+    }
+
     # --- Frontend (fallback) ---
     handle {
         reverse_proxy {
