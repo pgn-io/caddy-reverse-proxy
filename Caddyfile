@@ -57,7 +57,7 @@
         }
     }
 
-    handle_path /api/trpc* {
+    handle /api/trpc* {
         reverse_proxy {
         dynamic a {
             name {$DATA_BRIDGE_DOMAIN}
@@ -73,7 +73,7 @@
     }
 
     # --- Internal Services ---
-    handle_path {$IDENTITY_SERVICE_PATH:/api/auth}/* {
+    handle /api/auth/* {
         reverse_proxy {
             dynamic a {
                 name {$IDENTITY_SERVICE_DOMAIN}
@@ -88,7 +88,7 @@
         }
     }
 
-    handle_path {$IDENTITY_SERVICE_PATH:/api/profile}/* {
+    handle /api/profile/* {
         reverse_proxy {
             dynamic a {
                 name {$IDENTITY_SERVICE_DOMAIN}
