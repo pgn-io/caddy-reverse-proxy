@@ -53,8 +53,22 @@
             import lb_settings
             import passive_health_checks
 
-            # IMPORTANT: keep the public host, don't rewrite it to upstream_hostport
             header_up Host {host}
+        }
+    }
+
+    handle_path /api/trpc* {
+        reverse_proxy {
+        dynamic a {
+            name {$DATA_BRIDGE_DOMAIN}
+            port {$DATA_BRIDGE_PORT}
+            refresh 1s
+            dial_timeout 30s
+            versions ipv4 ipv6
+        }
+        import lb_settings
+        import passive_health_checks
+        header_up Host {host}
         }
     }
 
