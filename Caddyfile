@@ -139,6 +139,22 @@
         }
     }
 
+    # --- Data Bridge config ---
+    handle /api/config/hyperliquid {
+        reverse_proxy {
+            dynamic a {
+                name {$DATA_BRIDGE_DOMAIN}
+                port {$DATA_BRIDGE_PORT}
+                refresh 1s
+                dial_timeout 30s
+                versions ipv4 ipv6
+            }
+            import lb_settings
+            import passive_health_checks
+            header_up Host {host}
+        }
+    }
+    
     # --- Frontend (fallback) ---
     handle {
         reverse_proxy {
